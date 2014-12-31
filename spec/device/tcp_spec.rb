@@ -9,7 +9,6 @@ describe LogStashLogger::Device::TCP do
   before(:each) do
     allow(TCPSocket).to receive(:new) { tcp_socket }
     allow(tcp_socket).to receive(:sync=)
-    allow(tcp_socket).to receive(:setsockopt)
 
     allow(OpenSSL::SSL::SSLSocket).to receive(:new) { ssl_socket }
     allow(ssl_socket).to receive(:connect)
@@ -41,6 +40,7 @@ describe LogStashLogger::Device::TCP do
 
   context "use KEEPALIVE" do
     before(:each) do
+      allow(tcp_socket).to receive(:setsockopt)
       allow(tcp_socket).to receive(:write)
       allow(tcp_socket).to receive(:close)
       allow(ssl_socket).to receive(:write)
@@ -71,8 +71,8 @@ describe LogStashLogger::Device::TCP do
 
   context "reconnect on connection failures" do
     before(:each) do
-      allow(keepalive_tcp_device).to receive(:warn)
-      allow(keepalive_tcp_device).to receive(:close)
+      allow(tcp_device).to receive(:warn)
+      allow(tcp_device).to receive(:close)
       allow(tcp_socket).to receive(:write)
     end
 
@@ -83,20 +83,20 @@ describe LogStashLogger::Device::TCP do
         times_called += 1
         raise Errno::EPIPE if times_called == 1
       end
-      expect(keepalive_tcp_device).to receive(:reconnect)
-      keepalive_tcp_device.write('test')
+      expect(tcp_device).to receive(:reconnect)
+      tcp_device.write('test')
     end
 
     it "should give up reconnecting after 5 retries" do
       allow(tcp_socket).to receive(:write).and_raise(Errno::EPIPE).exactly(6).times
-      expect(keepalive_tcp_device).to receive(:reconnect).exactly(5).times
-      keepalive_tcp_device.write('test')
+      expect(tcp_device).to receive(:reconnect).exactly(5).times
+      tcp_device.write('test')
     end
 
     it "should print a warn message when giving up reconnecting" do
       allow(tcp_socket).to receive(:write).and_raise(Errno::EPIPE).exactly(6).times
-      expect(keepalive_tcp_device).to receive(:warn)
-      keepalive_tcp_device.write('test')
+      expect(tcp_device).to receive(:warn)
+      tcp_device.write('test')
     end
   end
 end
