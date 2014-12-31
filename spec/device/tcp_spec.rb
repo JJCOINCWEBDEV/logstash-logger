@@ -9,30 +9,63 @@ describe LogStashLogger::Device::TCP do
   before(:each) do
     allow(TCPSocket).to receive(:new) { tcp_socket }
     allow(tcp_socket).to receive(:sync=)
+    allow(tcp_socket).to receive(:setsockopt)
 
     allow(OpenSSL::SSL::SSLSocket).to receive(:new) { ssl_socket }
     allow(ssl_socket).to receive(:connect)
   end
 
-  context "when not using SSL" do
-    it "writes to a TCP socket" do
-      expect(tcp_socket).to receive(:write)
-      tcp_device.write('test')
+  context "use SSL" do
+    context "when not using SSL" do
+      it "writes to a TCP socket" do
+        expect(tcp_socket).to receive(:write)
+        tcp_device.write('test')
+      end
+
+      it "returns false for #use_ssl?" do
+        expect(tcp_device.use_ssl?).to be_falsey
+      end
     end
 
-    it "returns false for #use_ssl?" do
-      expect(tcp_device.use_ssl?).to be_falsey
+    context "when using SSL" do
+      it "writes to an SSL TCP socket" do
+        expect(ssl_socket).to receive(:write)
+        ssl_tcp_device.write('test')
+      end
+
+      it "returns true for #use_ssl?" do
+        expect(ssl_tcp_device.use_ssl?).to be_truthy
+      end
     end
   end
 
-  context "when using SSL" do
-    it "writes to an SSL TCP socket" do
-      expect(ssl_socket).to receive(:write)
-      ssl_tcp_device.write('test')
+  context "use KEEPALIVE" do
+    before(:each) do
+      allow(tcp_socket).to receive(:write)
+      allow(tcp_socket).to receive(:close)
+      allow(ssl_socket).to receive(:write)
     end
 
-    it "returns false for #use_ssl?" do
-      expect(ssl_tcp_device.use_ssl?).to be_truthy
+    context "when not using KEEPALIVE" do
+      it "doesn't call setsockopt" do
+        expect(tcp_socket).not_to receive(:setsockopt)
+        tcp_device.write('test')
+      end
+
+      it "returns false for #use_keepalive?" do
+        expect(tcp_device.use_keepalive?).to be_falsey
+      end
+    end
+
+    context "when using KEEPALIVE" do
+      it "calls setsockopt" do
+        expect(tcp_socket).to receive(:setsockopt).with(:SOCKET, :KEEPALIVE, true)
+        keepalive_tcp_device.write('test')
+      end
+
+      it "returns true for #use_keepalive?" do
+        expect(keepalive_tcp_device.use_keepalive?).to be_truthy
+      end
     end
   end
 end

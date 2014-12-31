@@ -198,6 +198,9 @@ config.logstash.type = :tcp
 
 # Optional, enables SSL
 config.logstash.ssl_enable = true
+
+# Optional, enables TCP keepalive feature
+config.logstash.keepalive_enable = true
 ```
 
 #### Unix Socket

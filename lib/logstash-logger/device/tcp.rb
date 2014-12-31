@@ -10,10 +10,15 @@ module LogStashLogger
 
         @ssl_certificate = opts[:ssl_certificate]
         @use_ssl = !!(@ssl_certificate || opts[:use_ssl] || opts[:ssl_enable])
+        @use_keepalive = opts[:use_keepalive] || opts[:keepalive_enable]
       end
 
       def use_ssl?
         @use_ssl || !@ssl_certificate.nil?
+      end
+
+      def use_keepalive?
+        @use_keepalive
       end
 
       protected
@@ -31,6 +36,7 @@ module LogStashLogger
       def non_ssl_connect
         @io = TCPSocket.new(@host, @port).tap do |socket|
           socket.sync = sync unless sync.nil?
+          socket.setsockopt(:SOCKET, :KEEPALIVE, true) if use_keepalive?
         end
       end
 
