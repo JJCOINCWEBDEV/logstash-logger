@@ -1,9 +1,27 @@
 module LogStashLogger
   module Device
     class Connectable < Base
+      RECONNECTABLE_EXCEPTIONS = [Errno::EPIPE, Errno::EBADF, Errno::ECONNRESET, Errno::ENOTCONN]
+      MAX_RETRIES = 5
+
       def write(message)
         with_connection do
-          super
+          if allow_retrying_on_failures?
+            retries = 0
+            begin
+              super
+            rescue *RECONNECTABLE_EXCEPTIONS
+              retries += 1
+              if retries <= MAX_RETRIES
+                reconnect
+                retry
+              else
+                raise
+              end
+            end
+          else
+            super
+          end
         end
       end
 
@@ -22,6 +40,10 @@ module LogStashLogger
 
       def connected?
         !!@io
+      end
+
+      def allow_retrying_on_failures?
+        !!@allow_retrying_on_failures
       end
 
       protected

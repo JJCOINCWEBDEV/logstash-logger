@@ -68,4 +68,35 @@ describe LogStashLogger::Device::TCP do
       end
     end
   end
+
+  context "reconnect on connection failures" do
+    before(:each) do
+      allow(keepalive_tcp_device).to receive(:warn)
+      allow(keepalive_tcp_device).to receive(:close)
+      allow(tcp_socket).to receive(:write)
+    end
+
+    it "should call #reconnect when connection failure occures" do
+      # found no clear way of raising exception just once
+      times_called = 0
+      allow(tcp_socket).to receive(:write) do
+        times_called += 1
+        raise Errno::EPIPE if times_called == 1
+      end
+      expect(keepalive_tcp_device).to receive(:reconnect)
+      keepalive_tcp_device.write('test')
+    end
+
+    it "should give up reconnecting after 5 retries" do
+      allow(tcp_socket).to receive(:write).and_raise(Errno::EPIPE).exactly(6).times
+      expect(keepalive_tcp_device).to receive(:reconnect).exactly(5).times
+      keepalive_tcp_device.write('test')
+    end
+
+    it "should print a warn message when giving up reconnecting" do
+      allow(tcp_socket).to receive(:write).and_raise(Errno::EPIPE).exactly(6).times
+      expect(keepalive_tcp_device).to receive(:warn)
+      keepalive_tcp_device.write('test')
+    end
+  end
 end

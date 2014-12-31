@@ -11,6 +11,7 @@ module LogStashLogger
         @ssl_certificate = opts[:ssl_certificate]
         @use_ssl = !!(@ssl_certificate || opts[:use_ssl] || opts[:ssl_enable])
         @use_keepalive = opts[:use_keepalive] || opts[:keepalive_enable]
+        @allow_retrying_on_failures = true
       end
 
       def use_ssl?
