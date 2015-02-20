@@ -12,6 +12,24 @@ module LogStashLogger
         @port = opts[:port] || fail(ArgumentError, "Port is required")
         @host = opts[:host] || DEFAULT_HOST
       end
+
+      def closed?
+        client_closed?
+      end
+
+      def client_closed?
+        !@io || @io.closed?
+      end
+
+      def reconnect
+        @io && @io.close
+        super
+      end
+
+      def ensure_connection
+        super
+        reconnect if closed?
+      end
     end
   end
 end

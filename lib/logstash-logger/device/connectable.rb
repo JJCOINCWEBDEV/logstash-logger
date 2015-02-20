@@ -58,9 +58,13 @@ module LogStashLogger
         connect
       end
 
+      def ensure_connection
+        connect unless connected?
+      end
+
       # Ensure the block is executed with a valid connection
       def with_connection(&block)
-        connect unless @io
+        ensure_connection
         yield
       rescue => e
         warn "#{self.class} - #{e.class} - #{e.message}"

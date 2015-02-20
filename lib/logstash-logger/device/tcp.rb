@@ -22,6 +22,20 @@ module LogStashLogger
         @use_keepalive
       end
 
+      def closed?
+        super || server_closed?
+      end
+
+      def server_closed?
+        # check if socket is in CLOSE_WAIT tcp state (it would have EOF in read
+        # stream)
+        # it triggers socket read, but it doesn't matter as long as logstash
+        # does not respond anything to socket
+        return true unless @io
+        rs, _, _ = ::IO.select([@io], [], [], 0)
+        rs && rs[0] && rs[0].eof?
+      end
+
       protected
 
       def connect
